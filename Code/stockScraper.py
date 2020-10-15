@@ -10,10 +10,10 @@ import yfinance as yf
 #       - ticker de la acción (Apple -> AAPL, Tesla -> TSLA, Intel -> INTC)
 #       - fecha de inicio
 #       - fecha fin (opcional, si no se incluye, se obtienen datos hasta hoy)
+#       - Api o web scraping (por defecto web scraping)
 ############################################################################################
 
 if __name__ == "__main__":
-    
     ticker = ''
     from_api = False
     # 1. Comprobamos que se ha pasado el argumento esperado
@@ -33,7 +33,6 @@ if __name__ == "__main__":
         print('stockSraper.py --ticker <stock ticker>')
         sys.exit(2)
     
-    #TODO: implementar que se pueda obtener información de web scraping o de la api según una flag que se pase como parámetro, así abarcamos más del enunciado de la práctica
     if not from_api:
         url = 'https://es.finance.yahoo.com/quote/' + ticker + '/history?p=' + ticker #ejemplo de TSLA: https://es.finance.yahoo.com/quote/TSLA/history?p=TSLA
         response = requests.get(url)
