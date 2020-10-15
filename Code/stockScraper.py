@@ -61,4 +61,4 @@ if __name__ == "__main__":
         all_info = ticker_info.history(preiod='max')
         final_df = pd.DataFrame(all_info)
 
-    final_df.to_csv(os.getcwd() + '\\' + ticker + 'history.csv')
+    final_df.to_csv(os.path.dirname(os.getcwd()) + '\\Dataset\\' + ticker + 'history.csv')
