@@ -11,6 +11,28 @@ from selenium.webdriver.chrome.options import Options
 # API
 import yfinance as yf
 
+import time
+
+# Función para hacer scroll down sobre la página web
+def scroll(driver, timeout):
+    scroll_pause_time = timeout
+
+    # Tamaño a realizar del scroll
+    last_height = driver.execute_script("return document.body.scrollHeight")
+
+    while True:
+        # Botón Scroll down
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+        # Esperamos para que se cargue la página
+        time.sleep(scroll_pause_time)
+
+        # Calculamos el nuevo recorrido a realizar de scroll down
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
+
 def get_page_selenium(ticker, startDate, endDate):
     options = Options()
     options.add_argument("start-maximized")
@@ -49,7 +71,9 @@ def get_page_selenium(ticker, startDate, endDate):
     # Aplicamos la búsqueda
     driver.find_element_by_xpath("//*[@id='Col1-1-HistoricalDataTable-Proxy']/section/div[1]/div[1]/button").click()
     sleep
-    # html para soap (actual response.text)
+    # llamaos a la función scroll para recoger todos los datos de la tabla haciendo scroll down
+    scroll(driver,5)
+    # html para soap
     return driver.page_source
 
 ############################################################################################
