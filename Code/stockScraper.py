@@ -11,13 +11,37 @@ from selenium.webdriver.chrome.options import Options
 # API
 import yfinance as yf
 
+import time
+
+# Función para hacer scroll down sobre la página web
+def scroll(driver, timeout):
+    scroll_pause_time = timeout
+
+    # Tamaño a realizar del scroll
+    last_height = driver.execute_script("return document.body.scrollHeight")
+
+    while True:
+        # Botón Scroll down
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+        # Esperamos para que se cargue la página
+        time.sleep(scroll_pause_time)
+
+        # Calculamos el nuevo recorrido a realizar de scroll down
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
+
 def get_page_selenium(url, startDate, endDate):
     options = Options()
     options.add_argument("start-maximized")
-    options.add_argument("disable-infobars")
+    options.add_argument("--disable-infobars")
     options.add_argument("--disable-extensions")
+    options.add_argument('log-level=3') # Mostrar solo información importante
+    options.add_argument("--headless") #Para no mostrar las ventanas del navegador
     # Generamos el driver para interactuar con la página web
-    exe = os.path.join(os.getcwd(), 'Code\\chromedriver.exe')
+    exe = os.path.join(os.getcwd(), 'chromedriver.exe')
     driver = webdriver.Chrome(chrome_options=options, executable_path=exe)
     # Abrimos la página
     driver.get(url)
@@ -43,7 +67,9 @@ def get_page_selenium(url, startDate, endDate):
     # Aplicamos la búsqueda
     driver.find_element_by_xpath("//*[@id='Col1-1-HistoricalDataTable-Proxy']/section/div[1]/div[1]/button").click()
     sleep
-    # html para soap (actual response.text)
+    # llamamos a la función scroll para recoger todos los datos de la tabla haciendo scroll down
+    scroll(driver,5)
+    # html para soap
     return driver.page_source
 
 ############################################################################################
@@ -106,7 +132,14 @@ if __name__ == "__main__":
             valores = [valor.text for valor in row.find_all('td')]
             if len(valores) == len(headers): #si no, es otro tipo de información, pero el día saldría duplicado
                 #TODO: sería mejor que se guardasen los números como float y no como str
-                ticker_df = ticker_df.append({h:valores[i] for i, h in enumerate(headers)}, ignore_index=True)
+                row_columns = {}
+                for i, h in enumerate(headers):
+                    try:
+                        valor = float(valores[i].replace(',', '.'))
+                    except:
+                        valor = valores[i]
+                    row_columns[h] = valor
+                ticker_df = ticker_df.append(row_columns, ignore_index=True)
         ticker_df['Ticker'] = [ticker] * ticker_df.shape[0]
         #USANDO YAHOO FINANCE API
         try:
@@ -114,12 +147,11 @@ if __name__ == "__main__":
         except:
             print('Ese ticker no existe')
         
-        if '/' in startDate:
+        """if '/' in startDate:
             startDate = datetime.datetime.strptime(startDate.replace('/', '-'), '%d-%m-%Y').strftime('%Y-%m-%d')
             endDate = datetime.datetime.strptime(endDate.replace('/', '-'), '%d-%m-%Y').strftime('%Y-%m-%d')
         api_info = ticker_info.history(preiod='max', start=startDate, end=endDate)[['Dividends', 'Stock Splits']]
-        if ticker_df.shape[0] < 350:
-            print('Error in ', ticker)
-        ticker_df = pd.concat([ticker_df, api_info], axis=1)
+        print(str(ticker_df.shape[0]))
+        ticker_df = pd.concat([ticker_df, api_info], axis=1)"""
         df_all = pd.concat([df_all, ticker_df], axis=0)
     df_all.to_csv(os.path.dirname(os.getcwd()) + '\\Dataset\\SectorAutomobil_acciones.csv')
