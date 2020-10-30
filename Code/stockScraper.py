@@ -11,25 +11,19 @@ from selenium.webdriver.chrome.options import Options
 # API
 import yfinance as yf
 
-def get_page_selenium(ticker, startDate, endDate):
+def get_page_selenium(url, startDate, endDate):
     options = Options()
     options.add_argument("start-maximized")
     options.add_argument("disable-infobars")
     options.add_argument("--disable-extensions")
     # Generamos el driver para interactuar con la página web
-    exe = os.path.join(os.getcwd(), 'chromedriver.exe')
+    exe = os.path.join(os.getcwd(), 'Code\\chromedriver.exe')
     driver = webdriver.Chrome(chrome_options=options, executable_path=exe)
     # Abrimos la página
-    driver.get('https://es.finance.yahoo.com')
+    driver.get(url)
     sleep=driver.implicitly_wait(10)
     # Aceptamos las políticas de datos
     driver.find_element_by_xpath("//button[@type='submit' and @value='agree']").click()
-    sleep
-    # Rellenamos el buscador de cotizaciones con el ticker que interesa mostrar
-    driver.find_element_by_xpath("//input[@type='text' and @name='s']").send_keys(ticker, Keys.ENTER)# Añadir ticker como parametro
-    sleep
-    # Seleecionamos los datos históricos
-    target = driver.find_element_by_xpath("//ul/li/a/span[text()='Datos históricos']").click()
     sleep
     # Abrimos el drop down de fechas
     driver.find_element_by_xpath("//div[@class='Pos(r) D(ib) Va(m) Mstart(8px)']").click()
@@ -61,26 +55,25 @@ def get_page_selenium(ticker, startDate, endDate):
 ############################################################################################
 
 if __name__ == "__main__":
-    ticker = ''
     startDate = ''
     endDate = ''
-    from_api = False
     # 1. Comprobamos que se ha pasado el argumento esperado
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"t:s:e:",["ticker=", "startDate=", "endDate=", "api"])
-
+        #opts, args = getopt.getopt(sys.argv[1:],"t:s:e:",["ticker=", "startDate=", "endDate=", "api"])
+        opts, args = getopt.getopt(sys.argv[1:],"s:e:",["startDate=", "endDate="])
         for argument in opts:
-            if argument[0] in ['--ticker', '-t']: 
-                ticker = argument[1]
-            elif argument[0] == '--api':
-                from_api = True
-            elif argument[0] in ['--startDate', '-s']:
+            if argument[0] in ['--startDate', '-s']:
                 startDate = argument[1]
             elif argument[0] in ["--endDate", '-e']:
                 endDate = argument[1]
-        if ticker == '': #OBLIGATORIO
+            """elif argument[0] in ['--ticker', '-t']: 
+                ticker = argument[1]
+            elif argument[0] == '--api':
+                from_api = True"""
+        
+        """if ticker == '': #OBLIGATORIO
             print('stockSraper.py --ticker <stock ticker>')
-            sys.exit(2)
+            sys.exit(2)"""
         if startDate == '': #cogemos hoy - un año
             today = datetime.datetime.now()
             startDate = str(today.day) + '/' + str(today.month) + '/' + str(today.year - 1)
@@ -91,10 +84,12 @@ if __name__ == "__main__":
         print('stockSraper.py --ticker <stock ticker>')
         sys.exit(2)
     
-    if not from_api: #WEB SCRAPPING
-        #url = 'https://es.finance.yahoo.com/quote/' + ticker + '/history?p=' + ticker #ejemplo de TSLA: https://es.finance.yahoo.com/quote/TSLA/history?p=TSLA
+    list_tickers = ['TSLA', 'PAH3.DE', 'NIO', 'RACE'] # Tickers de Tesla, Porsche, Nio, Ferrari
+    df_all = pd.DataFrame()
+    for ticker in list_tickers:
+        url = 'https://es.finance.yahoo.com/quote/' + ticker + '/history?p=' + ticker #ejemplo de TSLA: https://es.finance.yahoo.com/quote/TSLA/history?p=TSLA
         # Get the url using selenium
-        web_page_text = get_page_selenium(ticker, startDate, endDate)
+        web_page_text = get_page_selenium(url, startDate, endDate)
         #response = requests.get(url)
         soup = BeautifulSoup(web_page_text, 'html.parser')
         
@@ -104,23 +99,27 @@ if __name__ == "__main__":
         headers = prices_table.find('thead').find('tr')
         headers = [columna.text for columna in headers.find_all('th')]
         #La recorremos para extraer los datos mientras los guardamos en un dataFrame
-        final_df = pd.DataFrame({head:[] for head in headers})
+        ticker_df = pd.DataFrame({head:[] for head in headers})
         cuerpo_tabla = prices_table.find('tbody')
         rows = cuerpo_tabla.find_all('tr')
         for row in rows:
             valores = [valor.text for valor in row.find_all('td')]
             if len(valores) == len(headers): #si no, es otro tipo de información, pero el día saldría duplicado
                 #TODO: sería mejor que se guardasen los números como float y no como str
-                final_df = final_df.append({h:valores[i] for i, h in enumerate(headers)}, ignore_index=True)
-    else: #USANDO YAHOO FINANCE API
+                ticker_df = ticker_df.append({h:valores[i] for i, h in enumerate(headers)}, ignore_index=True)
+        ticker_df['Ticker'] = [ticker] * ticker_df.shape[0]
+        #USANDO YAHOO FINANCE API
         try:
             ticker_info = yf.Ticker(ticker)
         except:
             print('Ese ticker no existe')
         
-        startDate = datetime.datetime.strptime(startDate.replace('/', '-'), '%d-%m-%Y').strftime('%Y-%m-%d')
-        endDate = datetime.datetime.strptime(endDate.replace('/', '-'), '%d-%m-%Y').strftime('%Y-%m-%d')
-        all_info = ticker_info.history(preiod='max', start=startDate, end=endDate)
-        final_df = pd.DataFrame(all_info)
-
-    final_df.to_excel(os.path.dirname(os.getcwd()) + '\\Dataset\\' + ticker + 'history.xlsx')
+        if '/' in startDate:
+            startDate = datetime.datetime.strptime(startDate.replace('/', '-'), '%d-%m-%Y').strftime('%Y-%m-%d')
+            endDate = datetime.datetime.strptime(endDate.replace('/', '-'), '%d-%m-%Y').strftime('%Y-%m-%d')
+        api_info = ticker_info.history(preiod='max', start=startDate, end=endDate)[['Dividends', 'Stock Splits']]
+        if ticker_df.shape[0] < 350:
+            print('Error in ', ticker)
+        ticker_df = pd.concat([ticker_df, api_info], axis=1)
+        df_all = pd.concat([df_all, ticker_df], axis=0)
+    df_all.to_csv(os.path.dirname(os.getcwd()) + '\\Dataset\\SectorAutomobil_acciones.csv')
