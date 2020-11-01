@@ -81,6 +81,7 @@ def get_page_selenium(url, startDate, endDate):
 ############################################################################################
 
 if __name__ == "__main__":
+    excelwriter = pd.ExcelWriter(os.path.dirname(os.getcwd()) + '\\Dataset\\AccionesSectorAutomovil.xlsx')
     startDate = ''
     endDate = ''
     # 1. Comprobamos que se ha pasado el argumento esperado
@@ -140,7 +141,7 @@ if __name__ == "__main__":
                         valor = valores[i]
                     row_columns[h] = valor
                 ticker_df = ticker_df.append(row_columns, ignore_index=True)
-        ticker_df['Ticker'] = [ticker] * ticker_df.shape[0]
+        #ticker_df['Ticker'] = [ticker] * ticker_df.shape[0]
         #USANDO YAHOO FINANCE API
         try:
             ticker_info = yf.Ticker(ticker)
@@ -153,5 +154,6 @@ if __name__ == "__main__":
         api_info = ticker_info.history(preiod='max', start=startDate, end=endDate)[['Dividends', 'Stock Splits']]
         print(str(ticker_df.shape[0]))
         ticker_df = pd.concat([ticker_df, api_info], axis=1)"""
-        df_all = pd.concat([df_all, ticker_df], axis=0)
-    df_all.to_csv(os.path.dirname(os.getcwd()) + '\\Dataset\\SectorAutomobil_acciones.csv')
+        #df_all = pd.concat([df_all, ticker_df], axis=0)
+        ticker_df.to_excel(excelwriter, sheet_name = ticker)
+    excelwriter.save()
