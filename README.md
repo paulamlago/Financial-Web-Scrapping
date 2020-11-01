@@ -9,4 +9,21 @@ Este repositorio contiene cinco directiorios:
  - Document: Fichero PDF que contiene las respuestas de la PRAC1.
  - References: Referencias utilizadas para la eralización de la práctica
  
-# Explicar requerimientos para ejecutar script()
+# Requerimientos
+Para ejecutar el script, se deben instalar previamente los siguientes paquetes de python:
+- BeautifulSoup
+- pandas
+- selenium
+- yfinance
+
+# Ejecución
+
+Sin determinar el marco temporal (Se establece automáticamente un año atrás desde el momento de la ejecución):
+``` 
+>>> python stockScraper.py
+```
+
+Escogiendo la fecha de inicio y finalización de los datos:
+``` 
+>>> python stockScraper.py --startDate <fecha en formato dd/mm/yy> --endDate <fecha en formato dd/mm/yy>
+```
