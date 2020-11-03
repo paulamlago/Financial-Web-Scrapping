@@ -107,7 +107,22 @@ if __name__ == "__main__":
     except getopt.GetoptError:
         print('stockSraper.py --ticker <stock ticker>')
         sys.exit(2)
-    
+        
+    # Diccionario de meses
+    dict_dates={
+        "ene.":"01",
+        "feb.":"02",
+        "mar.":"03",
+        "abr.":"04",
+        "may.":"05",
+        "jun.":"06",
+        "jul.":"07",
+        "ago.":"08",
+        "sept.":"09",
+        "oct.":"10",
+        "nov.":"11",
+        "dic.":"12"
+    }
     list_tickers = ['TSLA', 'PAH3.DE', 'NIO', 'RACE'] # Tickers de Tesla, Porsche, Nio, Ferrari
     df_all = pd.DataFrame()
     for ticker in list_tickers:
@@ -132,10 +147,22 @@ if __name__ == "__main__":
                 #TODO: sería mejor que se guardasen los números como float y no como str
                 row_columns = {}
                 for i, h in enumerate(headers):
-                    try:
-                        valor = float(valores[i].replace(',', '.'))
-                    except:
-                        valor = valores[i]
+                    # Para los valores de fechas cambiamos el formato de dd month. yyyy a dd/MM/yyyy
+                    if i==0:
+                        full_date=valores[i].split(" ")
+                        day=str(full_date[0])
+                        month=str(dict_dates.get((full_date[1])))
+                        year=str(full_date[2])
+                        full_date=str(day+"/"+month+"/"+year)
+                        valor=full_date
+                # Para el volumen lo convertimos a un entero y reemplazamos los valores - por 0
+                    elif i==6:
+                        valores[i]=valores[i].replace('-','0')
+                        valor=int(valores[i].replace('.',''))
+                # Para el resto de valores, los convertimos a float
+                    else:      
+                        valores[i]=valores[i].replace('-','0')
+                        valor=float(valores[i].replace(',','.'))
                     row_columns[h] = valor
                 ticker_df = ticker_df.append(row_columns, ignore_index=True)
         #ticker_df['Ticker'] = [ticker] * ticker_df.shape[0]
