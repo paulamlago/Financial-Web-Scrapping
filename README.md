@@ -22,8 +22,3 @@ Sin determinar el marco temporal (Se establece automáticamente un año atrás d
 ``` 
 >>> python stockScraper.py
 ```
-
-Escogiendo la fecha de inicio y finalización de los datos:
-``` 
->>> python stockScraper.py --startDate <fecha en formato dd/mm/yy> --endDate <fecha en formato dd/mm/yy>
-```
