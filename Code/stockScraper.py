@@ -14,8 +14,6 @@ from selenium.webdriver.chrome.options import Options
 # API
 import yfinance as yf
 
-
-
 # Función para hacer scroll down sobre la página web
 def scroll(driver):
     # Creamos una iteración para hacer un total de 4 scrolls
@@ -63,12 +61,16 @@ def get_page_selenium(url, startDate, endDate):
     # html para soap
     return driver.page_source
 
-def visualise_close_volume(data, ticker_name):
-    fig, ax = plt.subplots(nrows = 2, ncols = 1)
+def visualise_close_volume(data, ticker_name, directory):
+    fig = plt.figure(constrained_layout=True, figsize=(10, 7))
+    #fig, ax = plt.subplots(nrows = 2, ncols = 1)
+    gs = fig.add_gridspec(3, 1)
+    ax1 = fig.add_subplot(gs[:2, :])
     fig.suptitle(ticker_name)
-    ax[0].plot(data['Cierre*'])
-    ax[1].bar(range(data.shape[0]), data['Volumen'])
-    plt.savefig(os.getcwd() + '\\' + ticker_name + '_visualisation.png')
+    ax1.plot(data['Cierre*'])
+    ax2 = fig.add_subplot(gs[2, :])
+    ax2.bar(range(data.shape[0]), data['Volumen'])
+    plt.savefig(directory + '\\' + ticker_name + '_visualisation.png')
     plt.close(fig)
 
 ############################################################################################
@@ -143,8 +145,7 @@ if __name__ == "__main__":
         rows = cuerpo_tabla.find_all('tr')
         for row in rows:
             valores = [valor.text for valor in row.find_all('td')]
-            if len(valores) == len(headers): #si no, es otro tipo de información, pero el día saldría duplicado
-                #TODO: sería mejor que se guardasen los números como float y no como str
+            if len(valores) == len(headers) and not any(v == '-' for v in valores): #si no, es otro tipo de información, pero el día saldría duplicado
                 row_columns = {}
                 for i, h in enumerate(headers):
                     # Para los valores de fechas cambiamos el formato de dd month. yyyy a dd/MM/yyyy
@@ -165,21 +166,20 @@ if __name__ == "__main__":
                         valor=float(valores[i].replace(',','.'))
                     row_columns[h] = valor
                 ticker_df = ticker_df.append(row_columns, ignore_index=True)
-        #ticker_df['Ticker'] = [ticker] * ticker_df.shape[0]
-        #USANDO YAHOO FINANCE API
-        try:
-            ticker_info = yf.Ticker(ticker)
-        except:
-            print('Ese ticker no existe')
+        ticker_df = ticker_df.reindex(index = ticker_df.index[::-1]) #para que esté en orden cronológico.
         
-        """if '/' in startDate:
+        #USANDO YAHOO FINANCE API
+        ticker_info = yf.Ticker(ticker)
+        if '/' in startDate: #lo convertimos al sistema apropiado, con '-'
             startDate = datetime.datetime.strptime(startDate.replace('/', '-'), '%d-%m-%Y').strftime('%Y-%m-%d')
             endDate = datetime.datetime.strptime(endDate.replace('/', '-'), '%d-%m-%Y').strftime('%Y-%m-%d')
-        api_info = ticker_info.history(preiod='max', start=startDate, end=endDate)[['Dividends', 'Stock Splits']]
-        print(str(ticker_df.shape[0]))
-        ticker_df = pd.concat([ticker_df, api_info], axis=1)"""
-        #df_all = pd.concat([df_all, ticker_df], axis=0)
+        api_info = ticker_info.history(preiod='max', start=startDate, end=endDate)
+        extra_columns = ['Dividends', 'Stock Splits']
+        for column in extra_columns:
+            #limpieza de datos: con la api no obtenemos el dato de hoy, ya que aún no está cerrado. Sin embargo haciendo web scrapping sí. Por lo que añadimos como primer elemento, actuamente vacío, el dato de ayer
+            column_data = api_info[column].tolist()
+            column_data = [column_data[0]] + column_data
+            ticker_df[column] = column_data
         ticker_df.to_excel(excelwriter, sheet_name = ticker)
-        print(list(ticker_df.columns))
-        visualise_close_volume(ticker_df, ticker)
+        visualise_close_volume(ticker_df, ticker, os.path.dirname(os.getcwd()) + '\\Dataset')
     excelwriter.save()
