@@ -67,9 +67,9 @@ def visualise_close_volume(data, ticker_name, directory):
     gs = fig.add_gridspec(3, 1)
     ax1 = fig.add_subplot(gs[:2, :])
     fig.suptitle(ticker_name)
-    ax1.plot(data['Cierre*'])
+    ax1.plot(data['Cierre*'].tolist())
     ax2 = fig.add_subplot(gs[2, :])
-    ax2.bar(range(data.shape[0]), data['Volumen'])
+    ax2.bar(range(data.shape[0]), data['Volumen'].tolist())
     plt.savefig(directory + '\\' + ticker_name + '_visualisation.png')
     plt.close(fig)
 
@@ -81,18 +81,16 @@ def visualise_close_volume(data, ticker_name, directory):
 
 if __name__ == "__main__":
     excelwriter = pd.ExcelWriter(os.path.dirname(os.getcwd()) + '\\Dataset\\AccionesSectorAutomovil.xlsx')
-    startDate = ''
-    endDate = ''
     # 1. Comprobamos que se ha pasado el argumento esperado
     try:
         #opts, args = getopt.getopt(sys.argv[1:],"t:s:e:",["ticker=", "startDate=", "endDate=", "api"])
         opts, args = getopt.getopt(sys.argv[1:],"s:e:",["startDate=", "endDate="])
         for argument in opts:
-            if argument[0] in ['--startDate', '-s']:
+            """if argument[0] in ['--startDate', '-s']:
                 startDate = argument[1]
             elif argument[0] in ["--endDate", '-e']:
                 endDate = argument[1]
-            """elif argument[0] in ['--ticker', '-t']: 
+            elif argument[0] in ['--ticker', '-t']: 
                 ticker = argument[1]
             elif argument[0] == '--api':
                 from_api = True"""
@@ -100,12 +98,15 @@ if __name__ == "__main__":
         """if ticker == '': #OBLIGATORIO
             print('stockSraper.py --ticker <stock ticker>')
             sys.exit(2)"""
-        if startDate == '': #cogemos hoy - un año
+        """if startDate == '': #cogemos hoy - un año
             today = datetime.datetime.now()
             startDate = str(today.day) + '/' + str(today.month) + '/' + str(today.year - 1)
         if endDate == '': # cogemos hoy
             today = datetime.datetime.now()
-            endDate = str(today.day) + '/' + str(today.month) + '/' + str(today.year)
+            endDate = str(today.day) + '/' + str(today.month) + '/' + str(today.year)"""
+        today = datetime.datetime.now()
+        startDate = str(today.day) + '/' + str(today.month) + '/' + str(today.year - 1)
+        endDate = str(today.day) + '/' + str(today.month) + '/' + str(today.year)
     except getopt.GetoptError:
         print('stockSraper.py --ticker <stock ticker>')
         sys.exit(2)
@@ -167,7 +168,8 @@ if __name__ == "__main__":
                     row_columns[h] = valor
                 ticker_df = ticker_df.append(row_columns, ignore_index=True)
         ticker_df = ticker_df.reindex(index = ticker_df.index[::-1]) #para que esté en orden cronológico.
-        
+        visualise_close_volume(ticker_df, ticker, os.path.dirname(os.getcwd()) + '\\Dataset')
+
         #USANDO YAHOO FINANCE API
         ticker_info = yf.Ticker(ticker)
         if '/' in startDate: #lo convertimos al sistema apropiado, con '-'
@@ -180,6 +182,5 @@ if __name__ == "__main__":
             column_data = api_info[column].tolist()
             column_data = [column_data[0]] + column_data
             ticker_df[column] = column_data
-        ticker_df.to_excel(excelwriter, sheet_name = ticker)
-        visualise_close_volume(ticker_df, ticker, os.path.dirname(os.getcwd()) + '\\Dataset')
+        ticker_df.to_excel(excelwriter, sheet_name = ticker, index=False)
     excelwriter.save()
