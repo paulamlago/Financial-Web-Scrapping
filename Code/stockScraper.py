@@ -4,6 +4,9 @@ import sys, getopt
 import pandas as pd
 import os
 import datetime
+import time
+import matplotlib.pyplot as plt  
+
 # SELENIUM
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -11,7 +14,7 @@ from selenium.webdriver.chrome.options import Options
 # API
 import yfinance as yf
 
-import time
+
 
 # Función para hacer scroll down sobre la página web
 def scroll(driver):
@@ -60,12 +63,18 @@ def get_page_selenium(url, startDate, endDate):
     # html para soap
     return driver.page_source
 
+def visualise_close_volume(data, ticker_name):
+    fig, ax = plt.subplots(nrows = 2, ncols = 1)
+    fig.suptitle(ticker_name)
+    ax[0].plot(data['Cierre*'])
+    ax[1].bar(range(data.shape[0]), data['Volumen'])
+    plt.savefig(os.getcwd() + '\\' + ticker_name + '_visualisation.png')
+    plt.close(fig)
+
 ############################################################################################
 # Args esperados: 
-#       - ticker de la acción (Apple -> AAPL, Tesla -> TSLA, Intel -> INTC)
-#       - fecha de inicio
+#       - fecha de inicio (opcional)
 #       - fecha fin (opcional, si no se incluye, se obtienen datos hasta hoy)
-#       - Api o web scraping (por defecto web scraping)
 ############################################################################################
 
 if __name__ == "__main__":
@@ -144,4 +153,6 @@ if __name__ == "__main__":
         ticker_df = pd.concat([ticker_df, api_info], axis=1)"""
         #df_all = pd.concat([df_all, ticker_df], axis=0)
         ticker_df.to_excel(excelwriter, sheet_name = ticker)
+        print(list(ticker_df.columns))
+        visualise_close_volume(ticker_df, ticker)
     excelwriter.save()
