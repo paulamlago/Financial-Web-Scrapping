@@ -62,7 +62,7 @@ def get_page_selenium(url, startDate, endDate):
     return driver.page_source
 
 def visualise_close_volume(data, ticker_name, directory):
-    fig = plt.figure(constrained_layout=True, figsize=(10, 7))
+    fig = plt.figure(figsize=(10, 7))
     #fig, ax = plt.subplots(nrows = 2, ncols = 1)
     gs = fig.add_gridspec(3, 1)
     ax1 = fig.add_subplot(gs[:2, :])
@@ -181,6 +181,9 @@ if __name__ == "__main__":
             #limpieza de datos: con la api no obtenemos el dato de hoy, ya que aún no está cerrado. Sin embargo haciendo web scrapping sí. Por lo que añadimos como primer elemento, actuamente vacío, el dato de ayer
             column_data = api_info[column].tolist()
             column_data = [column_data[0]] + column_data
-            ticker_df[column] = column_data
+            try:
+                ticker_df[column] = column_data
+            except:
+                ticker_df[column] = column_data[-ticker_df.shape[0]:] #yfinance bug, a veces devuelve información ligeramente más aplia que el rango dado (entre startDate y endDate)
         ticker_df.to_excel(excelwriter, sheet_name = ticker, index=False)
     excelwriter.save()
